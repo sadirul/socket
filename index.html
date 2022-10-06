@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+	<title>Chat app</title>
+	<style type="text/css">
+		.mainContent{
+			width: 600px;
+		    border: 8px solid #556ba7;
+		    border-radius: 14px;
+		    padding: 10px;
+		    height: 650px;
+		    margin: auto;
+		}
+
+		.messages{
+			width: 96%;
+		    height: 67%;
+		    padding: 10px;
+		    border: none;
+		    overflow-y: scroll;
+		}
+
+		.leftChat{
+			margin: 5px;
+			width: 68%;
+		    padding: 6px;
+		    border: 2px solid black;
+		    border-radius: 6px;
+		    float: left;
+			background: #313170;
+    		color: white;
+    		word-wrap: break-word;
+		}
+
+		.rightChat{
+			margin: 5px;
+			width: 68%;
+		    padding: 6px;
+		    border: 2px solid black;
+		    border-radius: 6px;
+		    float: right;
+			background: #33ad33;
+		    color: white;
+		    word-wrap: break-word;
+		}
+		html, body {
+			 height: 100%;
+		}
+		body{
+			  display: flex;
+			 
+			  align-items: center;
+			  justify-content: center;
+		}
+
+		.mousePad{
+			height: 300px;
+		    border: 4px solid red;
+		    margin-top: 18px;
+		}
+
+		.screenRecord{
+			height: 300px;
+		    margin-top: 18px;
+		}
+	</style>
+</head>
+<body>
+
+	<div class="mainContent">
+		<div class="messages" id="messages">
+		</div>
+		<hr>
+		<p id="isTyping"></p>
+		<form id="myForm">
+			<input id="message" style="width: 94%; padding: 12px; margin-top: 5px;" placeholder="Enter text" rows="7" cols="30">
+		</form>
+		<hr>
+		<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#connectedUsersModal">Connected Uers</button>
+		<br>
+		<b>Brightness : </b> <span id="brightnessVal">50%</span>
+		<input id="range" style="width: 100%;" type="range" name="" min="0" max="100">
+
+		<br>
+		<br>
+		<div class="row">
+			<div class="col-md-12">
+				<button id="getScreenShot" class="btn btn-primary">ShowScreen</button>
+				<button id="stopScreenShot" class="btn btn-danger">Stop</button>
+			</div>
+			<div class="col-md-12 screenRecord" id="myvideo">
+				<img src="" id="screenRecordImage" style="width: 100%; height: 100%;">
+			</div>
+			<button id="fullScreen">Full Screen</button>
+
+
+			<div class="col-md-12 mousePad">
+				<span id="mousePadValue"></span>
+			</div>
+		</div>
+	</div>
+
+
+
+
+	<!-- Modal -->
+	<div class="modal fade" id="connectedUsersModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	  <div class="modal-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="exampleModalLabel">Connected Users</h5>
+	        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+	      </div>
+	      <div class="modal-body">
+	        <ul id="connectedUsersList"></ul>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script src="http://192.168.0.196:8080/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+		// NOTIFICATION SYSTEM
+		let permission =  Notification.requestPermission();
+		
+
+
+
+
+		var globalPerson = '';
+		var name = prompt("Enter your name?");
+		var socket = io('http://192.168.0.196:8080');
+		socket.on("connect", () => {
+			appendList(`<div class="rightChat">You : </b> joined the chat.</div>`)
+			socket.emit("new-user-joined", name);
+		})
+
+
+		socket.on("user_joined", (name, users) =>{
+			appendList(`<div class="leftChat"><b>${name}</b> : joined the chat.</div>`);
+			appendConnecedUers(users);
+		});
+
+		socket.on("client_message", (data) =>{
+			let greeting = new Notification(`${data.name}`, {
+        		body: data.message
+    		});
+			appendList(`<div class="leftChat"><b>${data.name}</b> : ${data.message}</div>`);
+		});
+
+		socket.on("client_disconnected", (username, socket_id) =>{
+			$(document).find("."+socket_id).hide();
+			appendList(`<div class="leftChat"><b>${username}</b> :  disconnected the chat.</div>`)
+		});
+
+		socket.on("client-is-typing", (data) => {
+			$("#isTyping").text((data.text != '') ? `${data.name} is typing. . .` : '');
+		});
+
+		socket.on("get-connected-users", (users) =>{
+			appendConnecedUers(users);
+		})
+
+		socket.on("client_brightness", (value) =>{
+			$("#brightnessVal").text(`${value}%`);
+			$("#range").val(value);
+		})
+
+
+		socket.on("client_got_screenshot", (value) =>{
+			$("#screenRecordImage").attr("src", 'data:image/jpeg;base64,'+value);
+		})
+
+
+
+
+		$(document).ready(function(){
+			$("#myForm").on("submit", function(e){
+				e.preventDefault();
+				var message = $("#message").val();
+				if(message != ''){
+					// alert(globalPerson)
+					socket.emit("message", message, globalPerson);
+					appendList(`<div class="rightChat"><b>You</b> : ${message}</div>`);
+					$("#message").val('');
+				}
+			});
+
+
+			$("#message").on("keyup focus", function(){
+				var $this = $(this);
+				var text = $this.val();
+				socket.emit("is-typing", text);
+			});
+
+			$("#message").on("focusout", function(){
+				socket.emit("is-typing", '');
+			});
+
+			// SEND TO A PARTICURL PERSON
+			$(document).on("click", "li", function(){
+				var $this = $(this);
+				globalPerson = $this.attr('class');
+			});
+
+
+			// BRIGHTNESS
+			$(document).on("input", "#range", function (e) {
+				var $this = $(this);
+				var value = $this.val();
+				$("#brightnessVal").text(`${value}%`);
+				socket.emit("brightness", value);
+			});
+
+
+			// MOUSE PAD
+			$(document).on("mousemove", ".mousePad", function (e) {
+				console.log(e.screenX)
+				$("#mousePadValue").text(e.screenX);
+			})
+
+			var x = 1366/411;
+			var y = 768/200;
+			$(".mousePad").bind('touchmove', function(jQueryEvent) {
+			   jQueryEvent.preventDefault();
+			   var event = window.event;
+			   // $('#mousePadValue').text('x='+event.touches[0].clientX + '  y= ' + event.touches[0].clientY);
+			   socket.emit("mousemove", {x : (Math.floor(event.touches[0].clientX * x)), y : (Math.floor(event.touches[0].clientY * y) - 2200)});
+			});
+
+			$(".mousePad").on("click", function (e) {
+				socket.emit("click_window");
+			})
+
+			$(".mousePad").on("dblclick", function (e) {
+				socket.emit("dblclick_window");
+			})
+
+			//GET SCREENSHOT
+			$("#getScreenShot").on("click", function (e) {
+				socket.emit("get_screenshot");
+			})
+
+			$("#stopScreenShot").on("click", function (e) {
+				socket.emit("stop_screenshot");
+			})
+
+			$("#fullScreen").on("click", function(){
+				var elem = document.getElementById("myvideo");
+				elem.requestFullscreen();
+			})
+
+
+			// $(".mousePad").on("mousedown", function (e) {
+			// 	// socket.emit("dblclick_window");
+			// 	alert(1)
+			// })
+
+
+
+
+
+
+
+
+
+		});
+
+		function appendList(message){
+			$(".messages").append(message);
+			document.getElementById('messages').scrollTo(0, document.getElementById('messages').scrollHeight);
+		}
+
+		function appendConnecedUers(list){
+			var html = '';
+			$.each(list, function(index, data){
+				html += `<li class="${index}">${data}</li>`;
+				$("#connectedUsersList").html(html);
+			});
+		}
+	</script>
+
+
+</body>
+</html>
