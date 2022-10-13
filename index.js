@@ -71,6 +71,9 @@ socket.on("got_screenshot", (data)=>{
 });
 
 
+socket.on("radio", (data)=>{
+  socket.broadcast.emit('client_radio', data);
+});
 
 
 socket.on('disconnect', () => {
