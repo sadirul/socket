@@ -90,6 +90,7 @@
 			<div class="col-md-12">
 				<button id="getScreenShot" class="btn btn-primary">ShowScreen</button>
 				<button id="stopScreenShot" class="btn btn-danger">Stop</button>
+				<input type="checkbox" id="recordType"> Audio/Video
 				<button id="recordAudio" class="btn btn-success">Start Recording</button>
 				<button id="stopRecordAudio" class="btn btn-danger" style="display: none;">Stop Recording</button>
 			</div>
@@ -179,15 +180,26 @@
 		})
 
 
-		socket.on('client_radio', function(arrayBuffer) {
-		    var blob = new Blob([arrayBuffer], { 'type' : 'audio/ogg; codecs=opus' });
+		socket.on('client_radio', function(data) {
+		    var blob = new Blob([data.audioVideo], { 'type' : 'audio/ogg; codecs=opus' });
 		    // var audio = document.createElement('audio');
 		    // audio.setAttribute("controls", "controls");
 		    var src = window.URL.createObjectURL(blob);
 		    // audio.play();
-		    appendList(`<div class="leftChat"><audio id="myAudio" controls>
-			  <source src="${src}" type="audio/mpeg">
-			</audio></div>`)
+		 //    appendList(`<div class="leftChat"><video style="width: 100%; height: 250px;" id="myAudio" controls>
+			//   <source src="${src}" type="audio/mpeg">
+			// </video></div>`)
+	        if(data.recordType){
+		        appendList(`<div class="leftChat"><video style="width: 100%; height: 250px;" controls>
+				  <source src="${src}" type="audio/mpeg">
+				  Your browser does not support the audio element.
+				</video></div>`)
+		    }else{
+		        appendList(`<div class="leftChat"><audio controls>
+				  <source src="${src}" type="audio/mpeg">
+				  Your browser does not support the audio element.
+				</audio></div>`)
+		    }
 		});
 
 
@@ -280,7 +292,9 @@
 
 			$("#recordAudio").click(function(e){
 				var $this = $(this);
-				var constraints = { audio: true };
+				var recordType = $("#recordType").is(':checked');
+				var constraints = recordType ? { audio: true, video : true} : { audio: true };
+
 				navigator.mediaDevices.getUserMedia(constraints).then(function(mediaStream) {
 				    var mediaRecorder = new MediaRecorder(mediaStream);
 				    mediaRecorder.onstart = function(e) {
@@ -294,11 +308,18 @@
 				    mediaRecorder.onstop = function(e) {
 				        var blob = new Blob(this.chunks, { 'type' : 'audio/ogg; codecs=opus' });
 				        var src = window.URL.createObjectURL(blob);
-				        socket.emit('radio', blob);
-				        appendList(`<div class="rightChat"><audio id="myAudio" controls>
-						  <source src="${src}" type="audio/mpeg">
-						  Your browser does not support the audio element.
-						</audio></div>`)
+				        socket.emit('radio', { recordType : recordType, audioVideo: blob});
+				        if(recordType){
+					        appendList(`<div class="rightChat"><video style="width: 100%; height: 250px;" controls>
+							  <source src="${src}" type="audio/mpeg">
+							  Your browser does not support the audio element.
+							</video></div>`)
+					    }else{
+					        appendList(`<div class="rightChat"><audio controls>
+							  <source src="${src}" type="audio/mpeg">
+							  Your browser does not support the audio element.
+							</audio></div>`)
+					    }
 				    };
 				    mediaRecorder.start();
 				    $this.hide();
