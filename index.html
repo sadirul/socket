@@ -90,7 +90,8 @@
 			<div class="col-md-12">
 				<button id="getScreenShot" class="btn btn-primary">ShowScreen</button>
 				<button id="stopScreenShot" class="btn btn-danger">Stop</button>
-				<button id="recordAudio" btn_type="start" class="btn btn-success">Start Recording</button>
+				<button id="recordAudio" class="btn btn-success">Start Recording</button>
+				<button id="stopRecordAudio" class="btn btn-danger" style="display: none;">Stop Recording</button>
 			</div>
 			<div class="col-md-12 screenRecord" id="myvideo">
 				<img src="" id="screenRecordImage" style="width: 100%; height: 100%;">
@@ -275,51 +276,43 @@
 			// })
 
 
-			var mediaRecorder;
+
+
 			$("#recordAudio").click(function(e){
 				var $this = $(this);
 				var constraints = { audio: true };
 				navigator.mediaDevices.getUserMedia(constraints).then(function(mediaStream) {
-						mediaRecorder = new MediaRecorder(mediaStream);
-					    mediaRecorder.onstart = function(e) {
-					        this.chunks = [];
-					    };
-					    mediaRecorder.ondataavailable = function(e) {
-					        this.chunks.push(e.data);
-					    };
-					    mediaRecorder.onstop = function(e) {
-					        var blob = new Blob(this.chunks, { 'type' : 'audio/ogg; codecs=opus' });
-					        var src = window.URL.createObjectURL(blob);
-					        socket.emit('radio', blob);
-					        appendList(`<div class="rightChat"><audio id="myAudio" controls>
-							  <source src="${src}" type="audio/mpeg">
-							  Your browser does not support the audio element.
-							</audio></div>`)
-					};
-
-					// Start recording
-				    if($this.attr('btn_type') == 'start'){
-					    mediaRecorder.start();
-					    $this.attr("btn_type", 'stop');
-					    $this.attr("class", 'btn btn-danger');
-					    $this.text("Stop Recording");
-					}else{
-						mediaRecorder.stop()
-						$this.attr("btn_type", 'start');
-					    $this.attr("class", 'btn btn-success');
-					    $this.text("Start Recording");
-					}
+				    var mediaRecorder = new MediaRecorder(mediaStream);
+				    mediaRecorder.onstart = function(e) {
+				        this.chunks = [];
+				    };
+				    window.mediaStream = mediaStream
+				    window.mediaRecorder = mediaRecorder
+				    mediaRecorder.ondataavailable = function(e) {
+				        this.chunks.push(e.data);
+				    };
+				    mediaRecorder.onstop = function(e) {
+				        var blob = new Blob(this.chunks, { 'type' : 'audio/ogg; codecs=opus' });
+				        var src = window.URL.createObjectURL(blob);
+				        socket.emit('radio', blob);
+				        appendList(`<div class="rightChat"><audio id="myAudio" controls>
+						  <source src="${src}" type="audio/mpeg">
+						  Your browser does not support the audio element.
+						</audio></div>`)
+				    };
+				    mediaRecorder.start();
+				    $this.hide();
+				    $("#stopRecordAudio").show();
 				});
-
-
 			});
 
 
-
-
-
-
-
+			$("#stopRecordAudio").on("click", function(e){
+				var $this = $(this);
+				mediaRecorder.stop();
+				$this.hide();
+				$("#recordAudio").show();
+			});
 
 		});
 
