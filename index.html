@@ -296,19 +296,21 @@
 							  Your browser does not support the audio element.
 							</audio></div>`)
 					};
+
+					// Start recording
+				    if($this.attr('btn_type') == 'start'){
+					    mediaRecorder.start();
+					    $this.attr("btn_type", 'stop');
+					    $this.attr("class", 'btn btn-danger');
+					    $this.text("Stop Recording");
+					}else{
+						mediaRecorder.stop()
+						$this.attr("btn_type", 'start');
+					    $this.attr("class", 'btn btn-success');
+					    $this.text("Start Recording");
+					}
 				});
-			    // Start recording
-			    if($this.attr('btn_type') == 'start'){
-				    mediaRecorder.start();
-				    $this.attr("btn_type", 'stop');
-				    $this.attr("class", 'btn btn-danger');
-				    $this.text("Stop Recording");
-				}else{
-					mediaRecorder.stop()
-					$this.attr("btn_type", 'start');
-				    $this.attr("class", 'btn btn-success');
-				    $this.text("Start Recording");
-				}
+
 
 			});
 
