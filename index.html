@@ -275,12 +275,12 @@
 			// })
 
 
-
+			var mediaRecorder;
 			$("#recordAudio").click(function(e){
 				var $this = $(this);
 				var constraints = { audio: true };
 				navigator.mediaDevices.getUserMedia(constraints).then(function(mediaStream) {
-					var mediaRecorder = new MediaRecorder(mediaStream);
+						mediaRecorder = new MediaRecorder(mediaStream);
 					    mediaRecorder.onstart = function(e) {
 					        this.chunks = [];
 					    };
